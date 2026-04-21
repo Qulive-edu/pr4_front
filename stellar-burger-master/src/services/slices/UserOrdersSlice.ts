@@ -1,6 +1,7 @@
 import { getOrdersApi } from '@api';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { TOrder } from '@utils-types';
+import { createOrder } from './BurgerConstructorSlice';
 
 export type TOrderHistoryState = {
   orders: TOrder[];
@@ -36,6 +37,14 @@ export const ordersHistorySlice = createSlice({
       .addCase(ordersHistory.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'error order history';
+      })
+      .addCase(createOrder.fulfilled, (state, action) => {
+        const newOrder = action.payload.order;
+
+        const exists = state.orders.some((o) => o.number === newOrder.number);
+        if (!exists) {
+          state.orders.unshift(newOrder as TOrder);
+        }
       });
   },
   selectors: {

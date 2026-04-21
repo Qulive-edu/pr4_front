@@ -1,6 +1,7 @@
 import { getFeedsApi, getOrderByNumberApi } from '@api';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { TOrder } from '@utils-types';
+import { createOrder } from './BurgerConstructorSlice';
 
 export type TFeedState = {
   orders: TOrder[];
@@ -65,6 +66,17 @@ export const feedDataSlice = createSlice({
       .addCase(getOrderByNumber.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'error feed';
+      })
+      .addCase(createOrder.fulfilled, (state, action) => {
+        console.log(
+          '🎯 createOrder.fulfilled в FeedDataSlice',
+          action.payload.order
+        );
+        const newOrder = action.payload.order;
+        state.orders.unshift(newOrder as TOrder);
+        state.totalToday += 1;
+        state.total += 1;
+        console.log('✅ Заказ добавлен в ленту:', newOrder.number);
       });
   },
   selectors: {

@@ -18,6 +18,39 @@ const mockAuthResponse = {
 const USE_MOCK = process.env.NODE_ENV === 'development';
 const URL = process.env.BURGER_API_URL;
 
+const generateMockOrder = (
+  number: number,
+  status: string,
+  ingredientIds: string[] = []
+): TOrder => ({
+  _id: `order_${number}_${Date.now()}`,
+  status,
+  name: 'Космический бургер',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  number,
+  ingredients: ingredientIds
+});
+
+const mockFeedOrders: TOrder[] = [
+  generateMockOrder(42156, 'done', [
+    '643d69a5c3f7b9001cfa093c',
+    '643d69a5c3f7b9001cfa0941'
+  ]),
+  generateMockOrder(42155, 'pending', [
+    '643d69a5c3f7b9001cfa093d',
+    '643d69a5c3f7b9001cfa0942'
+  ]),
+  generateMockOrder(42154, 'done', [
+    '643d69a5c3f7b9001cfa093c',
+    '643d69a5c3f7b9001cfa0940'
+  ]),
+  generateMockOrder(42153, 'created', [
+    '643d69a5c3f7b9001cfa0941',
+    '643d69a5c3f7b9001cfa0942'
+  ])
+];
+
 const checkResponse = <T>(res: Response): Promise<T> =>
   res.ok ? res.json() : res.json().then((err) => Promise.reject(err));
 
@@ -108,16 +141,30 @@ export const getIngredientsApi = () => {
     });
 };
 
-export const getFeedsApi = () =>
-  fetch(`${URL}/orders/all`)
+export const getFeedsApi = () => {
+  if (USE_MOCK) {
+    return Promise.resolve({
+      success: true,
+      orders: mockFeedOrders,
+      total: 42156,
+      totalToday: 12
+    });
+  }
+  // Оригинальный код
+  return fetch(`${URL}/orders/all`)
     .then((res) => checkResponse<TFeedsResponse>(res))
     .then((data) => {
       if (data?.success) return data;
       return Promise.reject(data);
     });
+};
 
-export const getOrdersApi = () =>
-  fetchWithRefresh<TFeedsResponse>(`${URL}/orders`, {
+export const getOrdersApi = () => {
+  if (USE_MOCK) {
+    return Promise.resolve(mockFeedOrders.slice(0, 2));
+  }
+
+  return fetchWithRefresh<TFeedsResponse>(`${URL}/orders`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
@@ -127,14 +174,28 @@ export const getOrdersApi = () =>
     if (data?.success) return data.orders;
     return Promise.reject(data);
   });
+};
 
 type TNewOrderResponse = TServerResponse<{
   order: TOrder;
   name: string;
 }>;
 
-export const orderBurgerApi = (data: string[]) =>
-  fetchWithRefresh<TNewOrderResponse>(`${URL}/orders`, {
+export const orderBurgerApi = (data: string[]) => {
+  if (USE_MOCK) {
+    const newOrder = generateMockOrder(
+      Math.floor(Math.random() * 90000) + 10000,
+      'pending',
+      data
+    );
+    return Promise.resolve({
+      success: true,
+      order: newOrder,
+      name: 'Ваш заказ успешно оформлен!'
+    });
+  }
+  // Оригинальный код
+  return fetchWithRefresh<TNewOrderResponse>(`${URL}/orders`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
@@ -147,18 +208,30 @@ export const orderBurgerApi = (data: string[]) =>
     if (data?.success) return data;
     return Promise.reject(data);
   });
+};
 
 type TOrderResponse = TServerResponse<{
   orders: TOrder[];
 }>;
 
-export const getOrderByNumberApi = (number: number) =>
-  fetch(`${URL}/orders/${number}`, {
+export const getOrderByNumberApi = (number: number) => {
+  if (USE_MOCK) {
+    const order =
+      mockFeedOrders.find((o) => o.number === number) ||
+      generateMockOrder(number, 'done');
+    return Promise.resolve({
+      success: true,
+      orders: [order]
+    });
+  }
+  // Оригинальный код
+  return fetch(`${URL}/orders/${number}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json'
     }
   }).then((res) => checkResponse<TOrderResponse>(res));
+};
 
 export type TRegisterData = {
   email: string;

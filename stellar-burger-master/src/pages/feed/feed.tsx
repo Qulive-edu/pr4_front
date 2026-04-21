@@ -15,7 +15,7 @@ export const Feed: FC = () => {
   const orders: TOrder[] = useSelector(getFeedOrders);
 
   useEffect(() => {
-    dispatch(getFeedData()).then(() => {});
+    //dispatch(getFeedData()).then(() => {});
   }, [dispatch]);
 
   if (!orders.length || loading) {
