@@ -14,11 +14,11 @@ export const BurgerConstructorElement: FC<BurgerConstructorElementProps> = memo(
     const dispatch = useDispatch();
 
     const handleMoveDown = () => {
-      dispatch(moveUpIngredient(index));
+      dispatch(moveDownIngredient(index));
     };
 
     const handleMoveUp = () => {
-      dispatch(moveDownIngredient(index));
+      dispatch(moveUpIngredient(index));
     };
 
     const handleClose = () => {

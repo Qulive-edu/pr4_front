@@ -1,6 +1,21 @@
+// src/utils/burger-api.ts
 import { setCookie, getCookie } from './cookie';
 import { TIngredient, TOrder, TOrdersData, TUser } from './types';
+import { mockIngredients } from './mock-data';
 
+const mockUser = {
+  email: 'test@example.com',
+  name: 'Test User'
+};
+
+const mockAuthResponse = {
+  success: true,
+  accessToken: 'mock-access-token-' + Date.now(),
+  refreshToken: 'mock-refresh-token-' + Date.now(),
+  user: mockUser
+};
+
+const USE_MOCK = process.env.NODE_ENV === 'development';
 const URL = process.env.BURGER_API_URL;
 
 const checkResponse = <T>(res: Response): Promise<T> =>
@@ -15,8 +30,15 @@ type TRefreshResponse = TServerResponse<{
   accessToken: string;
 }>;
 
-export const refreshToken = (): Promise<TRefreshResponse> =>
-  fetch(`${URL}/auth/token`, {
+export const refreshToken = (): Promise<TRefreshResponse> => {
+  if (USE_MOCK) {
+    return Promise.resolve({
+      success: true,
+      accessToken: 'mock-access-token-' + Date.now(),
+      refreshToken: 'mock-refresh-token-' + Date.now()
+    });
+  }
+  return fetch(`${URL}/auth/token`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
@@ -34,6 +56,7 @@ export const refreshToken = (): Promise<TRefreshResponse> =>
       setCookie('accessToken', refreshData.accessToken);
       return refreshData;
     });
+};
 
 export const fetchWithRefresh = async <T>(
   url: RequestInfo,
@@ -71,13 +94,19 @@ type TOrdersResponse = TServerResponse<{
   data: TOrder[];
 }>;
 
-export const getIngredientsApi = () =>
-  fetch(`${URL}/ingredients`)
+export const getIngredientsApi = () => {
+  // 🔧 MOCK для разработки
+  if (USE_MOCK) {
+    return Promise.resolve(mockIngredients);
+  }
+  // Оригинальный запрос к API
+  return fetch(`${URL}/ingredients`)
     .then((res) => checkResponse<TIngredientsResponse>(res))
     .then((data) => {
       if (data?.success) return data.data;
       return Promise.reject(data);
     });
+};
 
 export const getFeedsApi = () =>
   fetch(`${URL}/orders/all`)
@@ -143,8 +172,11 @@ type TAuthResponse = TServerResponse<{
   user: TUser;
 }>;
 
-export const registerUserApi = (data: TRegisterData) =>
-  fetch(`${URL}/auth/register`, {
+export const registerUserApi = (data: TRegisterData) => {
+  if (USE_MOCK) {
+    return Promise.resolve(mockAuthResponse);
+  }
+  return fetch(`${URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
@@ -156,14 +188,18 @@ export const registerUserApi = (data: TRegisterData) =>
       if (data?.success) return data;
       return Promise.reject(data);
     });
+};
 
 export type TLoginData = {
   email: string;
   password: string;
 };
 
-export const loginUserApi = (data: TLoginData) =>
-  fetch(`${URL}/auth/login`, {
+export const loginUserApi = (data: TLoginData) => {
+  if (USE_MOCK) {
+    return Promise.resolve(mockAuthResponse);
+  }
+  return fetch(`${URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
@@ -175,9 +211,13 @@ export const loginUserApi = (data: TLoginData) =>
       if (data?.success) return data;
       return Promise.reject(data);
     });
+};
 
-export const forgotPasswordApi = (data: { email: string }) =>
-  fetch(`${URL}/password-reset`, {
+export const forgotPasswordApi = (data: { email: string }) => {
+  if (USE_MOCK) {
+    return Promise.resolve({ success: true });
+  }
+  return fetch(`${URL}/password-reset`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
@@ -189,9 +229,13 @@ export const forgotPasswordApi = (data: { email: string }) =>
       if (data?.success) return data;
       return Promise.reject(data);
     });
+};
 
-export const resetPasswordApi = (data: { password: string; token: string }) =>
-  fetch(`${URL}/password-reset/reset`, {
+export const resetPasswordApi = (data: { password: string; token: string }) => {
+  if (USE_MOCK) {
+    return Promise.resolve({ success: true });
+  }
+  return fetch(`${URL}/password-reset/reset`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
@@ -203,18 +247,29 @@ export const resetPasswordApi = (data: { password: string; token: string }) =>
       if (data?.success) return data;
       return Promise.reject(data);
     });
+};
 
 type TUserResponse = TServerResponse<{ user: TUser }>;
 
-export const getUserApi = () =>
-  fetchWithRefresh<TUserResponse>(`${URL}/auth/user`, {
+export const getUserApi = () => {
+  if (USE_MOCK) {
+    return Promise.resolve({ success: true, user: mockUser });
+  }
+  return fetchWithRefresh<TUserResponse>(`${URL}/auth/user`, {
     headers: {
       authorization: getCookie('accessToken')
     } as HeadersInit
   });
+};
 
-export const updateUserApi = (user: Partial<TRegisterData>) =>
-  fetchWithRefresh<TUserResponse>(`${URL}/auth/user`, {
+export const updateUserApi = (user: Partial<TRegisterData>) => {
+  if (USE_MOCK) {
+    return Promise.resolve({
+      success: true,
+      user: { ...mockUser, ...user }
+    });
+  }
+  return fetchWithRefresh<TUserResponse>(`${URL}/auth/user`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json;charset=utf-8',
@@ -222,9 +277,13 @@ export const updateUserApi = (user: Partial<TRegisterData>) =>
     } as HeadersInit,
     body: JSON.stringify(user)
   });
+};
 
-export const logoutApi = () =>
-  fetch(`${URL}/auth/logout`, {
+export const logoutApi = () => {
+  if (USE_MOCK) {
+    return Promise.resolve({ success: true });
+  }
+  return fetch(`${URL}/auth/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json;charset=utf-8'
@@ -233,3 +292,4 @@ export const logoutApi = () =>
       token: localStorage.getItem('refreshToken')
     })
   }).then((res) => checkResponse<TServerResponse<{}>>(res));
+};
